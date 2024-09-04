@@ -35,9 +35,9 @@ y_tensor = torch.tensor(y, dtype=torch.float32)
 dataset = TensorDataset(X_tensor, y_tensor)
 
 # Define a simplified neural network with ReLU and Dropout
-class SimplifiedNeuralNet(nn.Module):
+class NeuralNet(nn.Module):
     def __init__(self, input_size, output_size):
-        super(SimplifiedNeuralNet, self).__init__()
+        super(NeuralNet, self).__init__()
         self.fc1 = nn.Linear(input_size, 128)
         self.fc2 = nn.Linear(128, 64)
         self.fc3 = nn.Linear(64, output_size)
@@ -54,9 +54,9 @@ class SimplifiedNeuralNet(nn.Module):
 # Initialize the neural network, loss function, and optimizer
 input_size = X.shape[1]
 output_size = y.shape[1]
-model = SimplifiedNeuralNet(input_size, output_size)
+model = NeuralNet(input_size, output_size)
 criterion = nn.MSELoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=0.0005, weight_decay=1e-5)  # Reduced learning rate
+optimizer = torch.optim.Adam(model.parameters(), lr=0.0005, weight_decay=1e-4)  # Reduced learning rate
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=3, factor=0.5)
 
 # Set the number of epochs
@@ -103,3 +103,22 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(X_tensor)):
     
     # Print the minimum validation loss for this fold
     print(f'Minimum Validation Loss for Fold {fold + 1}: {min_val_loss}')
+
+
+# Group data by gender
+males = data[data['gender'] == 1]  # Assuming 1 represents male
+females = data[data['gender'] == 0]  # Assuming 0 represents female
+
+# Get predictions for males and females
+X_males = torch.tensor(scaler_X.transform(males.drop(columns=['math score', 'reading score', 'writing score'])), dtype=torch.float32)
+y_males_pred = model(X_males).detach().numpy()
+
+X_females = torch.tensor(scaler_X.transform(females.drop(columns=['math score', 'reading score', 'writing score'])), dtype=torch.float32)
+y_females_pred = model(X_females).detach().numpy()
+
+# Calculate mean predictions
+mean_pred_males = y_males_pred.mean(axis=0)
+mean_pred_females = y_females_pred.mean(axis=0)
+
+print(f'Mean Predictions for Males: {mean_pred_males}')
+print(f'Mean Predictions for Females: {mean_pred_females}')
